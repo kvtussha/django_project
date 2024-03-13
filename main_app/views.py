@@ -1,5 +1,4 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
@@ -34,7 +33,6 @@ class ProductDetailView(LoginRequiredMixin, DetailView):
         context['version'] = version
         return context
 
-
 class ProductCreateView(LoginRequiredMixin, CreateView):
     model = Product
     form_class = ProductCreateForm
@@ -59,11 +57,9 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
         form.instance.last_modified_date = timezone.now()
         return super().form_valid(form)
 
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_perm('main_app.change_product'):
-            return HttpResponseForbidden("У вас нет прав для изменения продукта.")
-
-        return super().dispatch(request, *args, **kwargs)
+    def check_owner(self, request, *args, **kwargs):
+        product = self.get_object()
+        return self.request.user == product.owner
 
 
 class ProductDeleteView(LoginRequiredMixin, DeleteView):
