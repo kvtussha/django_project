@@ -3,6 +3,7 @@ import random
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import Group
 from django.contrib.auth.views import PasswordResetDoneView, PasswordResetConfirmView, PasswordResetCompleteView, \
     PasswordResetView, LogoutView
 from django.core.mail import send_mail
@@ -33,6 +34,10 @@ class RegisterView(CreateView):
 
         verification_code = ''.join([str(random.randint(0, 9)) for _ in range(8)])
         user.verification_code = verification_code
+
+        if user.is_staff:
+            manager_group = Group.objects.get(name='Manager')
+            user.groups.add(manager_group)
 
         user.save()
 

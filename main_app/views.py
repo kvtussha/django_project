@@ -1,4 +1,4 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse_lazy, reverse
@@ -34,11 +34,13 @@ class ProductDetailView(LoginRequiredMixin, DetailView):
         context['version'] = version
         return context
 
-class ProductCreateView(LoginRequiredMixin, CreateView):
+
+class ProductCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = Product
     form_class = ProductCreateForm
     success_url = reverse_lazy('main_app:product-list')
     template_name = 'main_app/product/product_form.html'
+    permission_required = 'main_app.add_product'
 
     def form_valid(self, form):
         form.instance.views_count = 0
@@ -46,10 +48,11 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class ProductUpdateView(LoginRequiredMixin, UpdateView):
+class ProductUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Product
     form_class = ProductUpdateForm
     template_name = 'main_app/product/product_form.html'
+    permission_required = 'main_app.change_product'
 
     def get_success_url(self):
         return reverse('main_app:product-detail', kwargs={'pk': self.object.pk})
@@ -62,18 +65,17 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
         self.object = self.get_object()
 
         if request.user != self.object.owner:
-            return HttpResponseForbidden("У вас нет прав для редактирования этого продукта.")
-
-        if not request.user.has_perm('main_app.change_product'):
-            return HttpResponseForbidden("У вас нет прав для изменения продукта.")
+            return HttpResponseForbidden("Вы не являетесь владельцем продукта. "
+                                         "У вас нет прав для его редактирования.")
 
         return super().dispatch(request, *args, **kwargs)
 
 
-class ProductDeleteView(LoginRequiredMixin, DeleteView):
+class ProductDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = Product
     template_name = 'main_app/product/product_confirm_delete.html'
     success_url = reverse_lazy('main_app:product-list')
+    permission_required = 'main_app.delete_product'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
